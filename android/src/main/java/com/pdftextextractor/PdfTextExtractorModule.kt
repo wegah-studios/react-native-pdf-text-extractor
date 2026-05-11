@@ -23,11 +23,9 @@ class PdfTextExtractorModule(private val reactContext: ReactApplicationContext) 
         return "PdfTextExtractor"
     }
 
-
     @ReactMethod
-    fun extractText(filePath: String, promise: Promise) {
+    fun isPasswordProtected(filePath: String, promise: Promise) {
         try {
-            //Init PDF Box resources
             PDFBoxResourceLoader.init(reactContext)
 
             val file = File(filePath)
@@ -35,13 +33,46 @@ class PdfTextExtractorModule(private val reactContext: ReactApplicationContext) 
                 promise.reject("ENOENT", "File not found: $filePath")
                 return
             }
+
             PDDocument.load(file).use { document ->
-                val stripper = PDFTextStripper()
-                val text = stripper.getText(document)
-                promise.resolve(text ?: "")
+                promise.resolve(document.isEncrypted)
             }
         } catch (e: IOException) {
-            promise.reject("E_PDF_READ", e.localizedMessage, e)
+            // IOException here usually means "encrypted"
+            promise.resolve(true)
+        } catch (e: Exception) {
+            promise.reject("E_UNKNOWN", e.localizedMessage, e)
+        }
+    }
+
+    @ReactMethod
+    fun extractText(filePath: String, password: String?, promise: Promise) {
+        try {
+            PDFBoxResourceLoader.init(reactContext)
+
+            val file = File(filePath)
+            if (!file.exists()) {
+                promise.reject("ENOENT", "File not found: $filePath")
+                return
+            }
+
+            val document = try {
+                if (password.isNullOrEmpty()) {
+                    PDDocument.load(file)
+                } else {
+                    PDDocument.load(file, password)
+                }
+            } catch (e: IOException) {
+                promise.reject("E_INVALID_PASSWORD", "Invalid or missing PDF password", e)
+                return
+            }
+
+            document.use {
+                val stripper = PDFTextStripper()
+                val text = stripper.getText(it)
+                promise.resolve(text ?: "")
+            }
+
         } catch (e: Exception) {
             promise.reject("E_UNKNOWN", e.localizedMessage, e)
         }
