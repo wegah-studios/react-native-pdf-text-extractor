@@ -1,7 +1,7 @@
 declare module "react-native-pdf-text-extractor" {
-  export function isPasswordProtected(file: string): Promise<boolean>;
+  export function isPasswordProtected(uri: string): Promise<boolean>;
   export function extractPdfText(
-    file: string,
+    uri: string,
     password?: string,
   ): Promise<string>;
 

@@ -15,6 +15,8 @@ if (!PdfTextExtractor) {
 }
 
 export async function isPasswordProtected(file) {
+  ensureAndroid();
+  file = file.replace("file://", "");
   return PdfTextExtractor.isPasswordProtected(file);
 }
 
